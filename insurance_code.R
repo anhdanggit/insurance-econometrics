@@ -18,8 +18,6 @@ library(gamlss)
 #------------------------------------------------
 ## (A.1) Cleaning data ####
 
-setwd("C:/Users/utilisateur/iCloudDrive/TSE-EEE/Insurance/Insurance project")
-
 dat1 = read.csv("./data/PG_2017_CLAIMS_YEAR0.csv")
 dat2 = read.csv("./data/PG_2017_YEAR1.csv")
 
@@ -192,3 +190,37 @@ ggplot(long, aes(premium, fill = model)) + geom_density(alpha = 0.2) + xlim(c(0,
   ggtitle("Distribution of Estimated Actuarial Premium") +
   theme_classic()
 
+
+#-------------------------------------------------
+## Compute Posterior Premium (Bayes Rule)
+
+'following assumptions:
+
+- There are two types of risk in the population, low and high-risk types with a 50% of chances for each type. 
+- The Number of claims N_it follows a Poisson distribution with an average frequency of λ_L=0.05 and λ_H=0.15
+- The realizations of severity of claims are i.i.d. and on average equal to 1. 
+- The insurance company uses the Bayesian rule to revise a priori pricing. 
+'
+
+### Compute the a posteriori fair premium E(N_i2 | N_i1=k ) for k=0,…,5.
+k = 0:5
+P.H.n_i1 = rep(0, 6)
+P.L.n_i1 = rep(0, 6)
+E.N_i2.n_i1 = rep(0, 6)
+
+lambda_H = 0.15
+lambda_L = 0.05
+
+
+exp.func = function(lambda, k){
+  exp(-lambda) * lambda^k / factorial(k)
+}
+
+for (i in k){
+  P.H.n_i1[i+1] = exp.func(lambda_H, i) / ( exp.func(lambda_H, i) + exp.func(lambda_L, i))
+  P.L.n_i1[i+1] = exp.func(lambda_L, i) / ( exp.func(lambda_H, i) + exp.func(lambda_L, i))
+  E.N_i2.n_i1[i+1] = lambda_H * P.H.n_i1[i+1] + lambda_L * P.L.n_i1[i+1]
+}
+
+post.premium = data.frame(k = k, P.H.n_i1 = P.H.n_i1, P.L.n_i1 = P.L.n_i1, E.N_i2.n_i1 = E.N_i2.n_i1)
+stargazer(post.premium, summary = FALSE, rownames = FALSE)
